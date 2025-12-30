@@ -1,7 +1,8 @@
-// ------------------ SMOOTH SCROLL + GSAP SETUP ------------------
+console.log("Three.js Loaded:", typeof THREE);
+
 gsap.registerPlugin(ScrollTrigger);
 
-// Init Lenis smooth scrolling
+// ------------------ SMOOTH SCROLL + GSAP SETUP ------------------
 const lenis = new Lenis();
 lenis.on("scroll", ScrollTrigger.update);
 
@@ -21,11 +22,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true,
-});
-
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setClearColor(0xffffff, 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -41,39 +38,45 @@ document.querySelector(".model").appendChild(renderer.domElement);
 let model;
 const loader = new THREE.GLTFLoader();
 
-loader.load("assets/josta.glb", function (gltf) {
-  model = gltf.scene;
+loader.load(
+  "assets/josta.glb",
+  function (gltf) {
+    model = gltf.scene;
 
-  model.traverse((node) => {
-    if (node.isMesh) {
-      if (node.material) {
+    model.traverse((node) => {
+      if (node.isMesh && node.material) {
         node.material.metalness = 0.3;
         node.material.roughness = 0.4;
         node.material.envMapIntensity = 1.5;
       }
-      node.castShadow = true;
-      node.receiveShadow = true;
-    }
-  });
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
 
-  // Center model
-  const box = new THREE.Box3().setFromObject(model);
-  const center = box.getCenter(new THREE.Vector3());
-  model.position.sub(center);
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
 
-  scene.add(model);
-  const size = box.getSize(new THREE.Vector3());
-  const maxDim = Math.max(size.x, size.y, size.z);
-  camera.position.z = maxDim * 1.5;
+    scene.add(model);
 
-  // Start animation collapsed
-  model.scale.set(0, 0, 0);
-  playInitialAnimation();
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    camera.position.z = maxDim * 1.5;
 
-  animate();
-});
+    model.scale.set(0, 0, 0);
+    playInitialAnimation();
 
-// ------------------ FLOATING + SCANNING VARIABLES ------------------
+    animate();
+  },
+  undefined,
+  function (err) {
+    console.error("GLB Load Error:", err);
+  }
+);
+
+// ------------------ FLOATING & ANIMATION VARIABLES ------------------
 const floatAmplitude = 0.2;
 const floatSpeed = 1.5;
 const rotationSpeed = 0.3;
@@ -102,7 +105,7 @@ function playInitialAnimation() {
   gsap.to(scanContainer, { scale: 1, duration: 1, ease: "power2.out" });
 }
 
-// ------------------ SCROLLTRIGGER ANIMATION ------------------
+// ------------------ SCROLLTRIGGER HANDLERS ------------------
 ScrollTrigger.create({
   trigger: "body",
   start: "top top",
@@ -110,11 +113,8 @@ ScrollTrigger.create({
   onEnterBack: () => {
     if (model) {
       gsap.to(model.scale, {
-        x: 1,
-        y: 1,
-        z: 1,
-        duration: 1,
-        ease: "power2.out",
+        x: 1, y: 1, z: 1,
+        duration: 1, ease: "power2.out",
       });
       isFloating = true;
     }
@@ -171,7 +171,7 @@ lenis.on("scroll", (e) => {
   currentScroll = e.scroll;
 });
 
-// ------------------ ANIMATION LOOP ------------------
+// ------------------ RENDER LOOP ------------------
 function animate() {
   if (model) {
     if (isFloating) {
